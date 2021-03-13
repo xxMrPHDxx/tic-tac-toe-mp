@@ -30,7 +30,7 @@ class JoinGameState(State):
 	def draw(self, screen):
 		screen.blit(self.bg, (0, 0))
 		# TODO: Draw free server
-	def key_down(self, key):
-		if key == pygame.K_ESCAPE:
+	def key_down(self, event):
+		if event.key == pygame.K_ESCAPE:
 			self.game.state.pop()
 

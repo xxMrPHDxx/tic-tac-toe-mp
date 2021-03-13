@@ -28,10 +28,12 @@ class StateManager():
 		if len(self) == 0: return
 		screen.fill(_WHITE)
 		self.__states[-1].draw(screen)
-	def key_down(self, key):
+	def key_down(self, event):
 		if len(self) == 0: return
-		self.__states[-1].key_down(key)
-	def key_up(self, key):
+		self.__states[-1].key_down(event)
+	def key_up(self, event):
 		if len(self) == 0: return
-		self.__states[-1].key_up(key)
-
+		self.__states[-1].key_up(event)
+	def key_held(self, event):
+		if len(self) == 0: return
+		self.__states[-1].key_held(event)

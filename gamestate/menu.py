@@ -1,4 +1,5 @@
 from .state import State
+from .create_game import CreateGameState
 from .join_game import JoinGameState
 import pygame
 
@@ -30,23 +31,25 @@ class MenuState(State):
 			selected = self._selected == i
 			font = self.font3 if selected else self.font4
 			text = font.render(
-				f'> {option}' if selected else option, 
+				f'[ {option} ]' if selected else option, 
 				True, 
 				_GRAY if selected else _BLACK
 			)
 			w = text.get_rect().width
 			screen.blit(text, (self.game.width/2-w/2, 210+28*i))
-	def key_up(self, key):
-		if key == pygame.K_UP:
+	def key_down(self, event):
+		if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+			self.game.should_exit = True
+		if event.key == pygame.K_UP:
 			self._selected -= 1
-		if key == pygame.K_DOWN:
+		if event.key == pygame.K_DOWN:
 			self._selected += 1
 		if self._selected <  0: self._selected = 0
 		if self._selected >= 2: self._selected = 1
-		if key == pygame.K_RETURN:
+		if event.key == pygame.K_RETURN:
 			if self._selected == 0:
-				# TODO: Create a game
-				pass
+				# Go to join server state
+				self.game.state.push(CreateGameState)
 			elif self._selected == 1:
 				# Go to join server state
 				self.game.state.push(JoinGameState)

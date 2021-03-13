@@ -27,10 +27,11 @@ class Player():
 class Game():
 	def __init__(self, width, height):
 		self.__width, self.__height = width, height
-		self.__grid    = [Cell(i//3, i%3) for i in range(9)]
-		self.__players = [Player(i==0) for i in range(2)]
-		self.__current = 0
-		self.__sm      = StateManager(self)
+		self.__grid      = [Cell(i//3, i%3) for i in range(9)]
+		self.__players   = [Player(i==0) for i in range(2)]
+		self.__current   = 0
+		self.__sm        = StateManager(self)
+		self.should_exit = False
 	@property
 	def width(self): return self.__width
 	@property
@@ -60,7 +61,9 @@ class Game():
 		self.state.update()
 	def draw(self, screen):
 		self.state.draw(screen)
-	def key_down(self, key):
-		self.state.key_down(key)
-	def key_up(self, key):
-		self.state.key_up(key)
+	def key_down(self, event):
+		self.state.key_down(event)
+	def key_up(self, event):
+		self.state.key_up(event)
+	def key_held(self, event):
+		self.state.key_held(event)
