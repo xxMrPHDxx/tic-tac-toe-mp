@@ -23,19 +23,29 @@ class Client(Thread):
 
 __EVENT_LOOP = {}
 def _run_client(client):
+	# Initialize server related stuff
+	client.game.id = None
+	client.game.game_list = []
+	
+	# Handshake with client
+	client.socket.send(dict(type='HELLO'))
+
+	# Game loop
 	while not client.game.should_exit:
-		try: msg = client.socket.recv()
-		except: break
-		if not 'type' in msg: continue
-		t = msg['type']
-		if t != 'IDLE': print('Got', msg)
-		if t == 'GAME_CREATED' and 'id' in msg:
-			_id = msg['id']
+		# Try to receive response from server
+		try: obj = client.socket.recv()
+		except Exception:
+			# The server or game closed, so exit and close the socket
+			client.socket.close()
+			break
+		t   = obj['type']
+		# Game created so assign the id and go to the play state
+		if t == 'GAME_CREATED' and 'id' in obj:
+			client.game.id = obj['id']
 			client.game.state.push(PlayState)
-		elif t == 'GAME_LIST' and 'games' in msg:
-			games = msg['games']
-		else:
-			client.socket.send({'type': 'IDLE'})
+		# Assign the active games for listing
+		if t == 'GAME_LIST' and 'games' in obj:
+			client.game.game_list = obj['games']
 
 if __name__ == '__main__':
 	# Connect to the socket

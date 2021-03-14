@@ -23,29 +23,31 @@ class Server():
 	def send(self, obj):
 		self.socket.send(obj)
 
-class Game():
-	def __init__(self, first, second):
-		self._first  = first
-		self._second = second
+class User():
+	def __init__(self, _id, sign):
+		self.id   = _id
+		self.sign = sign
 
 def _run_client(client):
-	server = client.server
+	server    = client.server
+	client_id = 1
 	try:
 		while True:
 			obj = client.socket.recv()
 			if 'type' not in obj: return
 			t = obj['type']
 			if t == 'CREATE_GAME':
-				_id = str(time.time())
-				cross, circle = 'XO' if random() else 'OX'
-				server.games[_id] = []
-				print('Created a game with id={_id}')
+				_id = str(int(time.time()))
+				sign = 'X' if random() < 0.5 else 'O'
+				server.games[_id] = [User(f'{client_id}', sign)]
+				client_id += 1
+				print(f'Created a game with id={_id}')
 				client.socket.send(dict(type='GAME_CREATED', id=_id))
 			elif t == 'LIST_GAME':
 				res = dict(
 					type='GAME_LIST',
 					games=[
-						dict(players=len(game))
+						dict(id=_id, full=len(game)>=2, owner=game[0].id)
 						for _id, game in server.games.items()
 					]
 				)

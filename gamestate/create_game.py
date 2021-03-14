@@ -1,4 +1,5 @@
 from .state import State
+from .play import PlayState
 import pygame
 
 _BLACK = (0, 0, 0)
@@ -38,6 +39,7 @@ class CreateGameState(State):
 		if event.key == pygame.K_ESCAPE:
 			self.game.state.pop()
 		elif event.key == pygame.K_RETURN:
+			print('Creating game...')
 			self.game.client.socket.send(dict(type='CREATE_GAME'))
 		if _is_alphabet(event.unicode):
 			if len(self._name) < 12: self._name += event.unicode
