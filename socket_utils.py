@@ -1,10 +1,14 @@
 from socket import socket as Socket, AF_INET, SOCK_STREAM
+from socket import SOL_SOCKET, SO_REUSEADDR
 from base64 import b64encode, b64decode
 import json
 
 class TCPSocket(Socket):
 	def __init__(self, socket=None):
+		# Create a default socket if given None
 		self.__socket = Socket(AF_INET, SOCK_STREAM) if socket is None else socket
+		# Set to re-use the address to avoid error: "Address already in use"
+		self.__socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 	@property
 	def socket(self): return self.__socket
 	def accept(self):

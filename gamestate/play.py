@@ -38,3 +38,20 @@ class PlayState(State):
 					if cell.value == 'X'
 					else self.circle, (10+x, 10+y)
 				)
+	def mouse_pressed(self, event):
+		left, middle, right = pygame.mouse.get_pressed()
+		
+		# Ask server for permission to make a move
+		if left:
+			x, y = event.pos
+			r, c = y//120, x//120
+			cell = self.game.cell(r, c)
+			if not cell.empty(): return
+			obj = dict(
+				type='TRY_MOVE', 
+				game_id=self.game.id,
+				row=r, col=c
+			)
+			print(obj)
+			self.game.client.socket.send(obj)
+

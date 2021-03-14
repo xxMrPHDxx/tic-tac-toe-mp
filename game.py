@@ -1,8 +1,5 @@
 from gamestate import StateManager, PlayState
 
-def __valid(i):
-	return i >= 0 and i < 3
-
 class Cell():
 	def __init__(self, row, col):
 		self.__row, self.__col = row, col
@@ -15,21 +12,14 @@ class Cell():
 	def value(self): return self.__value
 	def empty(self): return self.__value is None
 	def tick(self, value): 
-		assert value in ['X', 'O'], f'Invalid sign specified ({value})!'
+		assert value in 'XO', f'Invalid sign specified ({value})!'
 		self.__value = value
-
-class Player():
-	def __init__(self, cross):
-		self.__sign = 'X' if cross else 'O'
-	@property
-	def sign(self): return self.__sign
 
 class Game():
 	def __init__(self, width, height):
-		self.__width, self.__height = width, height
+		self.__width     = width
+		self.__height    = height
 		self.__grid      = [Cell(i//3, i%3) for i in range(9)]
-		self.__players   = [Player(i==0) for i in range(2)]
-		self.__current   = 0
 		self.__sm        = StateManager(self)
 		self.should_exit = False
 	@property
@@ -37,20 +27,18 @@ class Game():
 	@property
 	def height(self): return self.__height
 	@property
-	def player(self): return self.__player[self.__current]
-	@property
 	def state(self): return self.__sm
 	def cell(self, row, col):
 		assert type(row) == int and type(col) == int, 'Row and col should be int!'
 		idx = row * 3 + col
 		assert idx >= 0 and idx < 9, 'Invalid grid position!'
 		return self.__grid[idx]
-	def move(self, row, col):
+	def move(self, row, col, sign):
 		assert type(row) == int and type(col) == int, 'Row and col should be integer!'
-		assert __valid(row) and __valid(col), 'Row and/or col out of range (0-2)!'
 		idx = row*3 + col
+		assert Game.__valid(idx), 'Invalid position (-1<x<9)!'
 		assert self.__grid[idx].empty(), f'Cell ({row}, {col}) is not empty!'
-		self.__grid[idx].tick(self.player.sign)
+		self.__grid[idx].tick(sign)
 	def menu(self):
 		if len(self.state) != 2: return
 		self.state.pop()
@@ -67,3 +55,8 @@ class Game():
 		self.state.key_up(event)
 	def key_held(self, event):
 		self.state.key_held(event)
+	def mouse_pressed(self, event):
+		self.state.mouse_pressed(event)
+	@staticmethod
+	def __valid(pos):
+		return pos >= 0 and pos < 9

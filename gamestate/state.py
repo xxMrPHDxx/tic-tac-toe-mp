@@ -8,3 +8,4 @@ class State():
 	def key_down(self, event): pass
 	def key_up(self, event): pass
 	def key_held(self, event): pass
+	def mouse_pressed(self, event): pass

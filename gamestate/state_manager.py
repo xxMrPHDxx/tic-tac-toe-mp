@@ -37,3 +37,6 @@ class StateManager():
 	def key_held(self, event):
 		if len(self) == 0: return
 		self.__states[-1].key_held(event)
+	def mouse_pressed(self, event):
+		if len(self) == 0: return
+		self.__states[-1].mouse_pressed(event)
