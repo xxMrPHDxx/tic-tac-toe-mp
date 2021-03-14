@@ -1,18 +1,21 @@
 from socket_utils import TCPSocket
-from threading import Thread
+from threading import Thread, Lock
 
 import pygame
 from game import Game
-from gamestate import MenuState
+from gamestate import MenuState, PlayState
 
 class Client(Thread):
 	def __init__(self, server, target, addr=None, port=None):
 		Thread.__init__(self, group=None, target=target, name=f'client_{id(self)}', args=(self,))
+		self.__server = server
 		if not (addr is None and port is None):
 			self.__socket, self.__addr = TCPSocket(), (addr, port)
 			self.socket.connect(self.__addr)
 		else:
 			self.__socket, self.__addr = server.socket.accept()
+	@property
+	def server(self): return self.__server
 	@property
 	def socket(self): return self.__socket
 	@property
@@ -20,18 +23,18 @@ class Client(Thread):
 
 __EVENT_LOOP = {}
 def _run_client(client):
-	print('Sending JOIN handshake to server...')
-	client.socket.send({'type': 'JOIN'})
+	client.lock = Lock()
 	while not client.game.should_exit:
-		msg = client.socket.recv()
+		try: msg = client.socket.recv()
+		except: break
 		if not 'type' in msg: continue
 		t = msg['type']
-		if t == 'END':
-			print('Client received EXIT signal from server!')
-			return
-		elif t == 'JOINED':
-			print('Client successfully joined a game')
-			# game.add_player()
+		if t != 'IDLE': print('Got', msg)
+		if t == 'GAME_CREATED' and 'id' in msg:
+			_id = msg['id']
+			client.game.state.push(PlayState)
+		elif t == 'GAME_LIST' and 'games' in msg:
+			games = msg['games']
 		else:
 			client.socket.send({'type': 'IDLE'})
 
@@ -41,6 +44,7 @@ if __name__ == '__main__':
 
 	# Create a game and start
 	client.game = Game(360, 360)
+	client.game.client = client
 	client.start()
 
 	# Initialize pygame
@@ -60,6 +64,7 @@ if __name__ == '__main__':
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				client.game.should_exit = True
+				client.socket.send(dict(type='END'))
 				exit(0)
 			if event.type == pygame.KEYDOWN:
 				client.game.key_down(event)

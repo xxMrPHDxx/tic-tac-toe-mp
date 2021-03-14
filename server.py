@@ -1,5 +1,7 @@
 from socket_utils import TCPSocket
 from client import Client
+from random import random
+import time
 
 class Server():
 	def __init__(self, addr, port, **kwargs):
@@ -21,27 +23,56 @@ class Server():
 	def send(self, obj):
 		self.socket.send(obj)
 
+class Game():
+	def __init__(self, first, second):
+		self._first  = first
+		self._second = second
+
 def _run_client(client):
-	print('Server receiving...')
+	server = client.server
 	try:
 		while True:
 			obj = client.socket.recv()
 			if 'type' not in obj: return
 			t = obj['type']
-			if t == 'HELLO':
-				print('Server sending EXIT signal to client...')
-				client.socket.send({'type': 'END'})
-				return
+			if t == 'CREATE_GAME':
+				_id = str(time.time())
+				cross, circle = 'XO' if random() else 'OX'
+				server.games[_id] = []
+				print('Created a game with id={_id}')
+				client.socket.send(dict(type='GAME_CREATED', id=_id))
+			elif t == 'LIST_GAME':
+				res = dict(
+					type='GAME_LIST',
+					games=[
+						dict(players=len(game))
+						for _id, game in server.games.items()
+					]
+				)
+				client.socket.send(res)
+			elif t == 'JOIN_GAME':
+				# TODO: Join a game based on id
+				pass
+			elif t == 'END':
+				# Close the socket and break out of the loop
+				client.socket.close()
+				break
 			else:
-				client.socket.send({'type': 'IDLE'})
+				client.socket.send(dict(type='IDLE'))
 	except ConnectionResetError:
 		client.socket.close()
 
 if __name__ == '__main__':
 	server = Server('127.0.0.1', 8000)
 
+	# Assign active games mapped by a unique id (Currently empty)
+	server.games = {}
+
 	try:
+		# Accept clients
 		while True:
 			Client(server, target=_run_client).start()
 	finally:
+		# Close the socket and exit
+		server.socket.close()
 		exit(-1)

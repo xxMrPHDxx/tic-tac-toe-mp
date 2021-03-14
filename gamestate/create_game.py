@@ -3,7 +3,7 @@ import pygame
 
 _BLACK = (0, 0, 0)
 _WHITE = (255, 255, 255)
-_LGRAY = (110, 110, 110)
+_RED = (255, 0, 0)
 
 def _is_alphabet(letter):
 	return any([
@@ -27,7 +27,7 @@ class CreateGameState(State):
 	def update(self):
 		pass
 	def draw(self, screen):
-		t_name = self.font2.render(self._name, True, _BLACK, _LGRAY)
+		t_name = self.font2.render(self._name, True, _RED)
 		w1, w2 = [t.get_rect().width for t in [self.name, t_name]]
 		w  = w1 + w2
 		ww = self.game.width-w
@@ -37,6 +37,8 @@ class CreateGameState(State):
 	def key_down(self, event):
 		if event.key == pygame.K_ESCAPE:
 			self.game.state.pop()
+		elif event.key == pygame.K_RETURN:
+			self.game.client.socket.send(dict(type='CREATE_GAME'))
 		if _is_alphabet(event.unicode):
 			if len(self._name) < 12: self._name += event.unicode
 	def key_held(self, event):
