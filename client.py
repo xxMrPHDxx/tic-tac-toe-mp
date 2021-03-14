@@ -1,5 +1,5 @@
 from socket_utils import TCPSocket
-from threading import Thread, Lock
+from threading import Thread
 
 import pygame
 from game import Game
@@ -23,7 +23,6 @@ class Client(Thread):
 
 __EVENT_LOOP = {}
 def _run_client(client):
-	client.lock = Lock()
 	while not client.game.should_exit:
 		try: msg = client.socket.recv()
 		except: break
