@@ -1,32 +1,35 @@
 from .state import State
-from .play import PlayState
 import pygame
 
 _BLACK = (0, 0, 0)
 _WHITE = (255, 255, 255)
 _RED = (255, 0, 0)
 
-def _is_alphabet(letter):
+def _is_alphanumeric(letter):
 	return any([
 		letter >= 'a' and letter <= 'z',
-		letter >= 'A' and letter <= 'Z'
+		letter >= 'A' and letter <= 'Z',
+		letter >= '0' and letter <= '9'
 	])
 
 class CreateGameState(State):
 	def __init__(self, game):
 		State.__init__(self, game)
-		# Font, title and others
+
+		# Font, title and other variables
 		self.font1  = pygame.font.Font('freesansbold.ttf', 36)
 		self.font2  = pygame.font.Font('freesansbold.ttf', 16)
-		self.name    = self.font2.render('Name (Max: 12):  ', True, _BLACK)
 		self._name  = ''
+		self._max_name_length	= 12
+		self.name   = self.font2.render(
+			f'Name (Max: {self._max_name_length}):  ', True, _BLACK
+		)
+
 		# Create static background
 		self.bg = pygame.Surface((self.game.width, self.game.height))
 		self.bg.fill(_WHITE)
 		title   = self.font1.render('Create game!', True, _BLACK)
 		self.bg.blit(title, ((self.game.width-title.get_rect().width)/2, 40))
-	def update(self):
-		pass
 	def draw(self, screen):
 		t_name = self.font2.render(self._name, True, _RED)
 		w1, w2 = [t.get_rect().width for t in [self.name, t_name]]
@@ -39,10 +42,10 @@ class CreateGameState(State):
 		if event.key == pygame.K_ESCAPE:
 			self.game.state.pop()
 		elif event.key == pygame.K_RETURN:
-			print('Creating game...')
 			self.game.client.socket.send(dict(type='CREATE_GAME'))
-		if _is_alphabet(event.unicode):
-			if len(self._name) < 12: self._name += event.unicode
+		if _is_alphanumeric(event.unicode):
+			if len(self._name) < self._max_name_length: 
+				self._name += event.unicode
 	def key_held(self, event):
 		if event.key == pygame.K_BACKSPACE:
 			self._name = self._name[:-1]

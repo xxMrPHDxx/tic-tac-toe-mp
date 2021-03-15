@@ -7,6 +7,7 @@ _WHITE = (255, 255, 255)
 class PlayState(State):
 	def __init__(self, game):
 		State.__init__(self, game)
+
 		# Grid, Cross and Ellipse surfaces
 		self.grid   = pygame.Surface((game.width, game.height))
 		self.cross  = pygame.Surface((100, 100))
@@ -16,15 +17,17 @@ class PlayState(State):
 		for surface in [self.grid, self.cross, self.circle]: 
 			surface.fill(_WHITE)
 
-		# Draw grid
+		# Static tic-tac-toe grid
 		for i in range(1, 3):
 			j = i*120
 			pygame.draw.line(self.grid, _BLACK, (10, j), (350, j), 10)
 			pygame.draw.line(self.grid, _BLACK, (j, 10), (j, 350), 10)
-		# Draw cross
-		pygame.draw.line(self.cross, _BLACK, (20, 20), (80, 80), 10)
-		pygame.draw.line(self.cross, _BLACK, (20, 80), (80, 20), 10)
-		# Draw circle
+		
+		# Static 'X' surface
+		pygame.draw.line(self.cross, _BLACK, (25, 20), (75, 80), 12)
+		pygame.draw.line(self.cross, _BLACK, (25, 80), (75, 20), 12)
+		
+		# Static 'O' surface
 		pygame.draw.circle(self.circle, _BLACK, (50, 50), 30, 8)
 	def draw(self, screen):
 		screen.blit(self.grid, (0, 0))
@@ -43,15 +46,20 @@ class PlayState(State):
 		
 		# Ask server for permission to make a move
 		if left:
-			x, y = event.pos
-			r, c = y//120, x//120
+			'''
+			# Validate the position and check if the cell is not occupied
 			cell = self.game.cell(r, c)
 			if not cell.empty(): return
-			obj = dict(
+			'''
+			
+			# Parse row and column
+			x, y = event.pos
+			r, c = y//120, x//120
+
+			# Send the request
+			self.game.client.socket.send(dict(
 				type='TRY_MOVE', 
 				game_id=self.game.id,
 				row=r, col=c
-			)
-			print(obj)
-			self.game.client.socket.send(obj)
+			))
 

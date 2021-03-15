@@ -57,7 +57,7 @@ class Game():
 	def next(self):
 		self.__turn = 1 - self.__turn
 	def has_win(self, sign):
-		matches = [
+		return any([
 			all([self.grid[i] == sign for i in idxs])
 			for idxs in [
 				# Horizontal
@@ -72,23 +72,25 @@ class Game():
 				[0,4,8],
 				[2,4,6]
 			]
-		]
-		print('Check for wins', sign, matches)
-		return any(matches)
+		])
 
 def _run_client(client):
 	server = client.server
 	try:
 		while True:
+			# Awaiting response from socket
 			obj = client.socket.recv()
 			if 'type' not in obj: return
 			t = obj['type']
+
 			# Received handshake from client so assign/reply it with an id
 			if t == 'HELLO':
 				client.socket.send(dict(
 					type='ASSIGN_ID',
 					player_id=client.id
 				))
+
+			# Create game and assign an id to it
 			if t == 'CREATE_GAME':
 				_id = str(int(time.time()))
 				sign = 'X' if random() < 0.5 else 'O'
@@ -99,6 +101,8 @@ def _run_client(client):
 					game_id=_id,
 					player_id=client.id
 				))
+
+			# Game list requested, so send the game list (Only if it's not full)
 			elif t == 'LIST_GAME':
 				res = dict(
 					type='GAME_LIST',
@@ -109,82 +113,89 @@ def _run_client(client):
 					]
 				)
 				client.socket.send(res)
+
+			# Move requested, so try to make a move
 			elif t == 'TRY_MOVE' and all([
 				i in obj for i in ['game_id', 'row', 'col']
 			]):
-				print('Trying to move', obj)
-				# Try to make a move
-				game_id = obj['game_id']
+				game_id, row, col = [obj[k] for k in ['game_id', 'row', 'col']]
+				
+				# Check if game with given id exist
 				if game_id not in server.games:
-					# Game with the given id doesn't exist so ignore
 					client.socket.send(dict(
 						type='MOVE_FAILED', 
 						message='Invalid game id!'
 					))
 					continue
+
+				# Check if there are not enough players
 				game = server.games[game_id]
-				# Check if there are 2 players
 				if not game.ready:
-					# Not enough player!
 					client.socket.send(dict(
 						type='MOVE_FAILED', 
 						message='Not enough player!'
 					))
 					continue
-				# Check the grid position
-				row, col = obj['row'], obj['col']
-				idx      = row * 3 + col
+				
+				# Check if the grid position valid
+				idx = row * 3 + col
 				if not (idx >= 0 and idx < 9):
-					# Invalid grid position (Should never happens unless I'm dumb LOL)
 					client.socket.send(dict(
 						type='MOVE_FAILED', 
 						message='Invalid grid position!'
 					))
 					continue
+
 				# Check if the grid is empty
 				if not game.empty(idx):
-					# Trying to mark an occupied cell
 					client.socket.send(dict(
 						type='MOVE_FAILED', 
 						message='Cell is not empty!'
 					))
 					continue
+
 				# Check if it is this client's turn
 				if game.player.id != client.id:
-					# Someone else's turn
 					client.socket.send(dict(
 						type='MOVE_FAILED',
 						message='Not your turn!'
 					))
 					continue
+
 				# Update the game grid
-				idx = row * 3 + col
 				game.grid[idx] = game.player.sign
+
 				# Tell the client that it's ready to execute a move
 				client.socket.send(dict(
 					type='MOVE_SUCCESS',
 					row=row, col=col, 
 					sign=game.player.sign
 				))
+
 				# Update opponent with this client's move as well
 				game.opponent.client.socket.send(dict(
 					type='MOVE_SUCCESS',
 					row=row, col=col, 
 					sign=game.player.sign
 				))
+
 				# It's the next player's turn
 				game.next()
-				# Check for winners and send an update to all players
+				
+				# Check for winners and send an update to all players if found
 				winners = [game.has_win(p.sign) for p in game.players]
-				print('Winners', winners)
-				if all(winners) or not any(winners): continue
-				for player in game.players:
-					player.client.socket.send(dict(
-						type='FOUND_WINNER',
-						winner=game.players[0 if winners[0] else 1].sign
-					))
+				if not all(winners) and any(winners):
+					# A winner is found
+					for player in game.players:
+						player.client.socket.send(dict(
+							type='FOUND_WINNER',
+							winner=game.players[0 if winners[0] else 1].sign
+						))
+
+			# Client requested to join a game
 			elif t == 'JOIN_GAME' and 'game_id' in obj:
 				game_id = obj['game_id']
+
 				# Game with the given id doesn't exists
 				if game_id not in server.games:
 					client.socket.send(dict(
@@ -192,30 +203,37 @@ def _run_client(client):
 						message='Invalid game!'
 					))
 					continue
+
+				# Check if the game doesn't have enough player
 				game = server.games[game_id]
-				# Check if the game has enough player
 				if game.ready:
-					# Can't join when there's enough player
 					client.socket.send(dict(
 						type='JOIN_FAILED',
 						message='Game is full'
 					))
 					continue
+
 				# Add this client as 2nd player
 				sign = 'O' if game.player.sign == 'X' else 'X'
 				game.second = Player(client, sign)
+
 				# Successfully joined a game
 				client.socket.send(dict(
 					type='JOIN_SUCCESS',
 					game_id=game_id
 				))
+			
+			# Client requested to end its session, so close the socket and exit
 			elif t == 'END':
-				# Close the socket and break out of the loop
 				client.socket.close()
-				break
+				return
+
+			# Ignore the others
 			else:
 				client.socket.send(dict(type='IDLE'))
 	except ConnectionResetError:
+		pass
+	finally:
 		client.socket.close()
 
 if __name__ == '__main__':
