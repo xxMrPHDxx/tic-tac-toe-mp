@@ -1,4 +1,4 @@
-from gamestate import StateManager, PlayState
+from gamestate import StateManager
 
 class Cell():
 	def __init__(self, row, col):
@@ -39,12 +39,6 @@ class Game():
 		assert Game.__valid(idx), 'Invalid position (-1<x<9)!'
 		assert self.__grid[idx].empty(), f'Cell ({row}, {col}) is not empty!'
 		self.__grid[idx].tick(sign)
-	def menu(self):
-		if len(self.state) != 2: return
-		self.state.pop()
-	def play(self):
-		if len(self.state) != 1: return
-		self.state.push(PlayState)
 	def update(self):
 		self.state.update()
 	def draw(self, screen):
