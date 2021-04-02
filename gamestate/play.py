@@ -8,6 +8,9 @@ class PlayState(State):
 	def __init__(self, game):
 		State.__init__(self, game)
 
+		# Clear the grid
+		game.clear_grid()
+
 		# Grid, Cross and Ellipse surfaces
 		self.grid   = pygame.Surface((game.width, game.height))
 		self.cross  = pygame.Surface((100, 100))

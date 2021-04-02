@@ -1,4 +1,4 @@
-from gamestate import StateManager
+from gamestate import StateManager, DashboardState
 
 class Cell():
 	def __init__(self, row, col):
@@ -33,12 +33,31 @@ class Game():
 		idx = row * 3 + col
 		assert idx >= 0 and idx < 9, 'Invalid grid position!'
 		return self.__grid[idx]
+	def clear_grid(self):
+		# Clear the cells
+		for i, cell in enumerate(self.__grid):
+			self.__grid[i] = Cell(cell.row, cell.col)
+	def exit_game(self, reason='Game ended by user'):
+		if self.id == None: return
+		self.client.send(dict(type='EXIT_GAME', reason=reason))
+	def found_winner(self, winner):
+		# Tell the server that the game has ended
+		self.client.socket.send(dict(
+			type='EXIT_GAME',
+			reason='Found a winner!'
+		))
+		self.winner = winner
+		self.state.set(DashboardState)
 	def move(self, row, col, sign):
-		assert type(row) == int and type(col) == int, 'Row and col should be integer!'
+		# Grid indices validation
+		assert type(row) == int, 'Row should be integer!'
+		assert type(col) == int, 'Column should be integer!'
 		idx = row*3 + col
 		assert Game.__valid(idx), 'Invalid position (-1<x<9)!'
-		assert self.__grid[idx].empty(), f'Cell ({row}, {col}) is not empty!'
-		self.__grid[idx].tick(sign)
+
+		# Tick empty cells
+		if self.__grid[idx].empty():
+			self.__grid[idx].tick(sign)
 	def update(self):
 		self.state.update()
 	def draw(self, screen):
@@ -54,3 +73,12 @@ class Game():
 	@staticmethod
 	def __valid(pos):
 		return pos >= 0 and pos < 9
+	def end_game(self, reason=None):
+		# Try to request the server to end the active game
+		if self.game.id:
+			self.client.socket.send(dict(
+				type='EXIT_GAME',
+				game_id=self.id,
+				player_id=self.player_id,
+				reason=reason
+			))

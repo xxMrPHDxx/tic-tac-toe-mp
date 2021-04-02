@@ -34,11 +34,11 @@ def _run_client(client):
 	# Handshake with client
 	client.socket.send(dict(type='HELLO'))
 
-	# Game loop
+	# Client socket loop
 	while not client.game.should_exit:
 		# Try to receive response from server
 		try: obj = client.socket.recv()
-		except Exception:
+		except Exception as e:
 			# The server or game closed, so exit and close the socket
 			client.socket.close()
 			break
@@ -53,7 +53,7 @@ def _run_client(client):
 		# Game created so assign the id and go to the play state
 		if t == 'GAME_CREATED' and 'game_id' in obj and 'player_id' in obj:
 			client.game.id = obj['game_id']
-			client.game.state.push(PlayState)
+			client.game.state.set(PlayState)
 
 		# Assign the active games for listing
 		if t == 'GAME_LIST' and 'games' in obj:
@@ -62,11 +62,11 @@ def _run_client(client):
 		# Join a game (Should already be valid)
 		if t == 'JOIN_SUCCESS' and 'game_id' in obj:
 			client.game.id = obj['game_id']
-			client.game.state.push(PlayState)
+			client.game.state.set(PlayState)
 
 		# Something wrong when trying to join a game
 		if t == 'JOIN_FAILED' and 'message' in obj:
-			print(f'[Error]: {obj["message"]}')
+			print(f'[ERROR]: {obj["message"]}')
 
 		# Make a move (Should already be valid)
 		if t == 'MOVE_SUCCESS' and all([
@@ -77,12 +77,15 @@ def _run_client(client):
 
 		# Something wrong when trying to make a move
 		if t == 'MOVE_FAILED' and 'message' in obj:
-			print(f'[Error]: {obj["message"]}')
+			print(f'[ERROR]: {obj["message"]}')
 
 		# A player has won the game
 		if t == 'FOUND_WINNER' and 'winner' in obj:
-			# TODO: Go to dashboard or something!
-			print('Got winner', obj['winner'])
+			client.game.found_winner(obj['winner'])
+
+		# Game has ended
+		if t == 'GAME_ENDED' and 'reason' in obj:
+			print(f'Game ends, reason="{obj["reason"]}"')
 
 if __name__ == '__main__':
 	# Connect to the socket

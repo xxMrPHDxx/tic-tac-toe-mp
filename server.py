@@ -33,7 +33,7 @@ class Game():
 	def __init__(self, first):
 		self.first  = first
 		self.second = None
-		self.__turn   = 0
+		self.__turn = 0 						# TODO: Randomized turns (very easy)
 		self.grid   = [' '] * 9
 	@property
 	def opponent(self):
@@ -46,7 +46,12 @@ class Game():
 		return self.first, self.second
 	@property
 	def ready(self):
-		return all([p is not None for p in [self.first, self.second]])
+		return all([p is not None for p in self.players])
+	def has_player(self, player_id):
+		return any([
+			p is not None and p.id == player_id
+			for p in self.players
+		])
 	def empty(self, idx):
 		return self.grid[idx] == ' '
 	def is_full(self):	
@@ -74,6 +79,15 @@ class Game():
 			]
 		])
 
+def _remove_from_game(client, reason):
+	client.server.games = {
+		game_id: game
+		for game_id, game in client.server.games.items()
+		if not game.has_player(client.id)
+	}
+	print(f'[INFO]: Client {client.id} has been removed from a game.')
+	client.socket.send(dict(type='GAME_ENDED', reason=reason))
+
 def _run_client(client):
 	server = client.server
 	try:
@@ -95,7 +109,7 @@ def _run_client(client):
 				_id = str(int(time.time()))
 				sign = 'X' if random() < 0.5 else 'O'
 				server.games[_id] = Game(Player(client, sign))
-				print(f'Created a (game_id={_id}, player_id={client.id})')
+				print(f'[INFO]: A game (id={_id}) has been created by {client.id}!')
 				client.socket.send(dict(
 					type='GAME_CREATED', 
 					game_id=_id,
@@ -228,11 +242,16 @@ def _run_client(client):
 				client.socket.close()
 				return
 
+			# Client requested to close an active game
+			elif t == 'EXIT_GAME' and 'reason' in obj:
+				_remove_from_game(client, obj['reason'])
+
 			# Ignore the others
 			else:
 				client.socket.send(dict(type='IDLE'))
-	except ConnectionResetError:
-		pass
+	except ConnectionResetError as e:
+		# Manually remove in case of error, so the game mightn't yet being removed
+		_remove_from_game(client, f'Error: {e}')
 	finally:
 		client.socket.close()
 
