@@ -256,8 +256,21 @@ def _run_client(client):
 		client.socket.close()
 
 if __name__ == '__main__':
+	from sys import argv
+	import re
+
+	# Checking the address from command line or use default
+	addr = (len(argv) > 1 and argv[1]) or '127.0.0.1:8000'
+	if not re.match(r'^\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}\:\d{1,5}$', addr):
+		print('Usage: python3 server.py [ADDRESS:PORT]')
+		exit(-1)
+
+	# Parsing the address
+	addr, port = addr.split(':')
+
 	# Create a server instance
-	server = Server('127.0.0.1', 8000)
+	print(f'[INFO]: Creating server at {addr}:{port}.')
+	server = Server(addr, int(port))
 
 	# Assign active games mapped by a unique id (Currently empty)
 	server.games = {}

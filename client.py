@@ -88,8 +88,21 @@ def _run_client(client):
 			print(f'Game ends, reason="{obj["reason"]}"')
 
 if __name__ == '__main__':
+	from sys import argv
+	import re
+
+	# Checking address from argument or use default
+	addr = (len(argv) > 1 and argv[1]) or '127.0.0.1:8000'
+	if not re.match(r'^\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}\:\d{1,5}$', addr):
+		print('Usage: python3 client.py [ADDRESS:PORT]')
+		exit(-1)
+	
+	# Parsing the address
+	addr, port = addr.split(':')
+
 	# Connect to the socket
-	client = Client(server=None, addr='127.0.0.1', port=8000, target=_run_client)
+	print(f'[INFO]: Connecting to server at {addr}:{port}.')
+	client = Client(server=None, addr=addr, port=int(port), target=_run_client)
 
 	# Create a game
 	client.game = Game(360, 360)
