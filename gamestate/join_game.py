@@ -41,7 +41,7 @@ class JoinGameState(State):
 		for i, game in enumerate(self.game.game_list):
 			col  = _RED if self.__selected == i else _BLACK
 			no   = self.font2.render(str(i), True, col)
-			name = self.font2.render(game['id'], True, col)
+			name = self.font2.render(game['name'], True, col)
 			h    = no.get_rect().height
 			y    = 110+(10+h)*i
 			screen.blit(no, (10, y))

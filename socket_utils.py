@@ -1,4 +1,4 @@
-from socket import socket as Socket, AF_INET, SOCK_STREAM
+from socket import socket as Socket, AF_INET, AF_INET6, SOCK_STREAM
 from socket import SOL_SOCKET, SO_REUSEADDR
 from base64 import b64encode, b64decode
 import json
@@ -11,7 +11,7 @@ import json
 class TCPSocket(Socket):
 	def __init__(self, socket=None):
 		# Create a default socket if given None
-		self.__socket = Socket(AF_INET, SOCK_STREAM) if socket is None else socket
+		self.__socket = Socket(AF_INET6, SOCK_STREAM) if socket is None else socket
 		# Set to re-use the address to avoid error: "Address already in use"
 		self.__socket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 	@property
@@ -33,7 +33,10 @@ class TCPSocket(Socket):
 		if type(size) != int:
 			size = int.from_bytes(self.socket.recv(4), 'big')
 		# Our data is encoded using base64 encoder (smaller size and more secure)
-		return json.loads(b64decode(self.socket.recv(size)).decode('utf-8'))
+		try:
+			return json.loads(b64decode(self.socket.recv(size)).decode('utf-8'))
+		except:
+			return dict()
 	def send(self, obj):
 		# Only accept strings or dict objects
 		if type(obj) == str:
@@ -43,6 +46,6 @@ class TCPSocket(Socket):
 		# Encode our stringified json using base64
 		content = b64encode(json.dumps(obj).encode('utf-8'))
 		# Get the size (4-bytes with big-endian encoding)
-		size    = len(content).to_bytes(4, 'big')
+		size		= len(content).to_bytes(4, 'big')
 		# Send the data
 		self.socket.send(size + content)

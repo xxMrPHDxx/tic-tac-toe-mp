@@ -5,7 +5,7 @@ import time
 
 class Server():
 	def __init__(self, addr, port, **kwargs):
-		self.__name   = str(f'server_{id(self)}')
+		self.__name	 = str(f'server_{id(self)}')
 		self.__socket = TCPSocket()
 		self.socket.bind((addr, port))
 		self.socket.listen()
@@ -26,15 +26,16 @@ class Server():
 class Player():
 	def __init__(self, client, sign):
 		self.client = client
-		self.id     = client.id
-		self.sign   = sign
+		self.id		 = client.id
+		self.sign	 = sign
 
 class Game():
-	def __init__(self, first):
-		self.first  = first
+	def __init__(self, name, first):
+		self.name = name
+		self.first	= first
 		self.second = None
 		self.__turn = 0 						# TODO: Randomized turns (very easy)
-		self.grid   = [' '] * 9
+		self.grid	 = [' '] * 9
 	@property
 	def opponent(self):
 		return self.second if self.__turn == 0 else self.first
@@ -107,8 +108,9 @@ def _run_client(client):
 			# Create game and assign an id to it
 			if t == 'CREATE_GAME':
 				_id = str(int(time.time()))
+				name=obj['name'] if 'name' in obj else _id
 				sign = 'X' if random() < 0.5 else 'O'
-				server.games[_id] = Game(Player(client, sign))
+				server.games[_id] = Game(name, Player(client, sign))
 				print(f'[INFO]: A game (id={_id}) has been created by {client.id}!')
 				client.socket.send(dict(
 					type='GAME_CREATED', 
@@ -121,7 +123,12 @@ def _run_client(client):
 				res = dict(
 					type='GAME_LIST',
 					games=[
-						dict(id=_id, full=game.is_full(), owner=game.first.id)
+						dict(
+							id=_id, 
+							name=game.name,
+							full=game.is_full(), 
+							owner=game.first.id
+						)
 						for _id, game in server.games.items()
 						if not game.ready
 					]
@@ -239,6 +246,7 @@ def _run_client(client):
 			
 			# Client requested to end its session, so close the socket and exit
 			elif t == 'END':
+				_remove_from_game(client, 'Host quitted the game!')
 				client.socket.close()
 				return
 
@@ -261,12 +269,15 @@ if __name__ == '__main__':
 
 	# Checking the address from command line or use default
 	addr = (len(argv) > 1 and argv[1]) or '127.0.0.1:8000'
-	if not re.match(r'^\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}\:\d{1,5}$', addr):
+	if not any([
+			re.match(r'^\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}\:\d{1,5}$', addr),
+			re.match(r'^\w{1,4}\:\w{1,4}:\w{1,4}:\w{1,4}:\w{1,4}:\w{1,4}:\w{1,4}:\w{1,4}\:\d{1,5}$', addr)
+		]):
 		print('Usage: python3 server.py [ADDRESS:PORT]')
 		exit(-1)
 
 	# Parsing the address
-	addr, port = addr.split(':')
+	addr, port = '::', 8000
 
 	# Create a server instance
 	print(f'[INFO]: Creating server at {addr}:{port}.')

@@ -42,7 +42,7 @@ class CreateGameState(State):
 		if event.key == pygame.K_ESCAPE:
 			self.game.state.pop()
 		elif event.key == pygame.K_RETURN:
-			self.game.client.socket.send(dict(type='CREATE_GAME'))
+			self.game.client.socket.send(dict(type='CREATE_GAME', name=self._name))
 		if _is_alphanumeric(event.unicode):
 			if len(self._name) < self._max_name_length: 
 				self._name += event.unicode
